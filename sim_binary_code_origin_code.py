@@ -1,5 +1,7 @@
 import numpy as np
 import random
+import pickle
+from matplotlib import pyplot as plt
 EPSILON = 1e-10  # error tolerence due to floating number calculation
 
 
@@ -311,4 +313,88 @@ def basicTest():
     print("number of useless worker is:", counter - k)
 
 
-# basicTest()
+def simulations(k=15, n=22, testNum=10000, dtype='float64'):
+    # Log the test parameters
+    delta = {}
+    delta['k'] = k
+    delta['n'] = n
+    delta['testNum'] = testNum
+    delta['dtype'] = dtype
+
+    # Test RLNC
+    print("Testing RLNC")
+    # NOTE that if sysPhase=True, then
+    # each of the first k workers will only receive 1 units of information,
+    # and each of the remaining n - k workers will receive
+    # k/2 units of information on average.
+    enc = RLNCEncoder(numRow=k, numCol=1, sysPhase=True, dtype=dtype)
+    delta['RLNC'] = np.zeros(testNum)
+    for i in range(testNum):
+        print(i)
+        gMatrix = [enc.getCoeff() for j in range(n)]
+        order = np.random.permutation(n)
+        dec = Decoder()
+        decodable = False
+        count = 0
+        recCoeff = []
+        while (not decodable and count < n):
+            coeff = gMatrix[order[count]]
+            useful, decodable = dec.receive(coeff.copy())
+            count += 1
+            if useful:
+                recCoeff.append(coeff)
+        if decodable:  # evaluate the rank of the coeff matrix, should be full.
+            assert np.linalg.matrix_rank(recCoeff) == k
+        delta['RLNC'][i] = count - k
+
+    # Test LT code
+    print("Testing LT")
+    # With LT code, each worker will receive log(k) units of information
+    # on average. There is no systematic part.
+    enc = LTEncoder(numRow=k, numCol=1, dtype=dtype)
+    delta['LT'] = np.zeros(testNum)
+    for i in range(testNum):
+        print(i)
+        gMatrix = [enc.getCoeff() for j in range(n)]
+        order = np.random.permutation(n)
+        dec = Decoder()
+        decodable = False
+        count = 0
+        recCoeff = []
+        while (not decodable and count < n):
+            coeff = gMatrix[order[count]]
+            useful, decodable = dec.receive(coeff.copy())
+            count += 1
+            if useful:
+                recCoeff.append(coeff)
+        if decodable:  # evaluate the rank of the coeff matrix, should be full.
+            assert np.linalg.matrix_rank(recCoeff) == k
+        delta['LT'][i] = count - k
+
+    print("RLNC code average delta:", np.mean(delta['RLNC']))
+    print("LT code average delta:", np.mean(delta['LT']))
+
+    # Save the result
+    with open("results" + str(k) + "_" + str(n) + ".pickle", 'wb') as handle:
+        pickle.dump(delta, handle)
+
+    # Read the result
+    with open("results" + str(k) + "_" + str(n) + ".pickle", 'rb') as handle:
+        delta = pickle.load(handle)
+
+    # Plot the CDF
+    cdf = np.linspace(0, 100, delta['testNum'])
+    dRLNC = np.sort(delta['RLNC'])  # sort in descending order
+    dLT = np.sort(delta['LT'])  # sort in descending order
+    plt.plot(dRLNC, cdf, linewidth=3, label='RLNC code')
+    plt.plot(dLT, cdf, linewidth=3, label='LT code')
+    plt.xlim((0, delta['n'] - delta['k']))
+    plt.xlabel("Number of redundant workers ($\delta$)", fontsize=20)
+    plt.ylabel("CDF (%)", fontsize=20)
+    plt.title('Redundancy CDF of RLNC and LT code', fontsize=20)
+    plt.legend(loc='center right', fontsize=16)
+    plt.grid()
+    plt.show()
+
+
+simulations(k=15, n=22, testNum=10000, dtype='float64')
