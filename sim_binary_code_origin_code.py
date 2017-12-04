@@ -313,7 +313,7 @@ def basicTest():
     print("number of useless worker is:", counter - k)
 
 
-def simulations(k=15, n=22, testNum=10000, dtype='float64'):
+def simulations(k=15, n=22, testNum=1000, dtype='float64'):
     # Log the test parameters
     delta = {}
     delta['k'] = k
@@ -397,4 +397,4 @@ def simulations(k=15, n=22, testNum=10000, dtype='float64'):
     plt.show()
 
 
-simulations(k=15, n=22, testNum=10000, dtype='float64')
+simulations(k=15, n=22, testNum=100, dtype='float64')
