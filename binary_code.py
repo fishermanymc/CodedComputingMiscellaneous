@@ -12,9 +12,6 @@ def dec_xor(vec1, vec2, factor, dtype):
         return
     # Otherwise, XOR
     assert dtype == 'uint8'
-    # L = len(vec1)
-    # for i in range(L):
-    #     vec1[i] ^= vec2[i]
     vec1 = np.bitwise_xor(vec1, vec2)
 
 
