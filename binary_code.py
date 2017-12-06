@@ -18,9 +18,10 @@ def dec_xor(vec1, vec2, factor, dtype):
 def findPivot(coeff):
     # This function finds the location and value of
     # the first non-zero entry of a vector.
-    for i in range(len(coeff)):
-        if abs(coeff[i]) > EPSILON:  # use EPSILON instead of 0
-            return i, coeff[i]  # pivot location and value
+    nonZero = abs(coeff) > EPSILON
+    if any(nonZero):
+        loc = np.nonzero(nonZero)[0][0]
+        return loc, coeff[loc]
     return -1, 0
 
 
@@ -35,9 +36,12 @@ def idxFlatten(xList, yList, numCol=1):
     if max(yList) >= numCol:
         raise ValueError("y index exceeds column width!")
     idx = []
+    idx = [0 for i in range(len(xList) * len(yList))]
+    counter = 0
     for x in xList:
         for y in yList:
-            idx.append(x * numCol + y)
+            idx[counter] = x * numCol + y
+            counter += 1
     return idx
 
 
@@ -79,6 +83,14 @@ def decompose2D(d, numRow=1, numCol=1):
         d -= 1
 
 
+def pickElements(numElements, prob):
+    # pick each of 0, ..., numElements - 1 with a probability of prob
+    while True:
+        picked = np.random.randint(0, 1000, numElements) < 1000 * prob
+        if any(picked):
+            return list(np.nonzero(picked)[0])
+
+
 class RLNCEncoder:
     # systematic binary random linear network coding with 50% encoding prob.
     # inputs:
@@ -108,22 +120,14 @@ class RLNCEncoder:
             self.counter += 1
             return coeff
         else:  # coded phase
-            while True:
-                xList = []  # pick Ai
-                yList = []  # pick Bi
-                for r in range(self.numRow):
-                    if np.random.randint(100) < self.prob:
-                        xList.append(r)
-                for c in range(self.numCol):
-                    if np.random.randint(100) < self.prob:
-                        yList.append(c)
-                if len(xList) > 0 and len(yList) > 0:  # nonempty selections
-                    idx = idxFlatten(xList, yList, self.numCol)
-                    coeff = np.zeros(self.k, dtype=self.dtype)
-                    for i in idx:
-                        coeff[i] = 1
-                    self.counter += 1
-                    return coeff
+            xList = pickElements(self.numRow, self.prob)
+            yList = pickElements(self.numCol, self.prob)
+            idx = idxFlatten(xList, yList, self.numCol)
+            coeff = np.zeros(self.k, dtype=self.dtype)
+            for i in idx:
+                coeff[i] = 1
+            self.counter += 1
+            return coeff
 
 
 class LTEncoder:

@@ -18,7 +18,7 @@ def singleTest(numRow, numCol):
     order = np.random.permutation(n)
     coeffs = [enc1.getCoeff() for i in range(n)] 
     while not decodable:
-        useful, decodable = dec1.receive(coeffs[counter1])
+        useful, decodable = dec1.receive(coeffs[order[counter1]])
         counter1 += 1
     # print('lt')
     enc2 = bc.LTEncoder(numRow, numCol, dtype=dtype)
@@ -38,7 +38,6 @@ def simulations(testNum):
         validComb[k] = bc.decompose2D(k, k, k)
         print(validComb[k])
     print("initializaed")
-
     redun = {}
     redun['rlnc'] = {}
     redun['lt'] = {}

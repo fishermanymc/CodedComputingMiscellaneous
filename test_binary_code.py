@@ -1,5 +1,4 @@
 import pytest
-import numpy as np
 import binary_code as bc
 EPSILON = 1e-6  # error tolerence due to floating number calculation
 
