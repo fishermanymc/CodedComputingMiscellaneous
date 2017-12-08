@@ -1,5 +1,6 @@
 import numpy as np
 import random
+import myXOR
 EPSILON = 1e-10  # error tolerence due to floating number calculation
 
 
@@ -7,12 +8,17 @@ def dec_xor(vec1, vec2, factor, dtype):
     # This function updates vec1 by subtracting vec2 * factor from vec1
     # The operation is reduced to binary XOR if dtype is "uint8"
     assert len(vec1) == len(vec2)
-    if dtype == 'float64':
+    if dtype == 'float32':
         vec1 -= vec2 * factor
-        return
+        return vec1
     # Otherwise, XOR
     assert dtype == 'uint8'
     vec1 = np.bitwise_xor(vec1, vec2)
+    return vec1
+
+
+def dec_xor2(vec1, vec2, factor, dtype):
+    return myXOR.myXOR(vec1, vec2, factor, dtype)
 
 
 def findPivot(coeff):
@@ -99,14 +105,14 @@ class RLNCEncoder:
     #                            i.e., will proceed the systematic phase.
     #                   if False, will skip and only generated coded tasks.
     #         dtype: if "uint8", encoding and decoding are under binary field
-    #                if "float64", then under the real number field.
+    #                if "float32", then under the real number field.
     def __init__(self, numRow=1, numCol=1, sysPhase=True, dtype='uint8'):
         self.numRow = numRow
         self.numCol = numCol
         self.k = numRow * numCol
         # Calculate the prob. that each Ai and Bi will be chosen
         self.dimension = int(numRow > 1) + int(numCol > 1)
-        self.prob = 0.5 ** (1 / self.dimension) * 100
+        self.prob = 0.5 ** (1 / self.dimension)
         if sysPhase:
             self.counter = 0
         else:
@@ -244,7 +250,7 @@ class Decoder:
 
     def initialize(self, coeff):
         # meaningfully initialize the decoder after receiving a coeff
-        assert np.dtype(coeff[0]) in ['uint8', 'float64']
+        assert np.dtype(coeff[0]) in ['uint8', 'float32']
         self.k = len(coeff)
         self.dtype = np.dtype(coeff[0])
         self.coeffMatrix = np.zeros((self.k, self.k), dtype=self.dtype)
@@ -258,12 +264,13 @@ class Decoder:
             return False, True  # coeff is useless, the block can decode
         # forward Gaussian elimination
         for i in range(self.k):
-            if self.coeffMatrix[i, i] == 1 and coeff[i] > 0:
-                dec_xor(coeff, self.coeffMatrix[i], coeff[i], self.dtype)
+            if coeff[i] > 0 and self.coeffMatrix[i, i] == 1:
+                coeff = dec_xor(coeff, self.coeffMatrix[i], coeff[i],
+                                self.dtype)
         pivot, value = findPivot(coeff)
         if value == 0:  # this coeff is linearly dependent of previous basis
             return False, False  # coeff is useless, the block cannot decode
-        if self.dtype == 'float64':
+        if self.dtype == 'float32':
             coeff /= value
         # coeff becomes a new basis.
         # Use it to backward Gaussian eliminate other basis
@@ -284,7 +291,7 @@ def basicTest():
     k = numRow * numCol  # number of original tasks
     N = k * 10  # number of workers
     # dtype = 'uint8'  # binary operation
-    dtype = 'float64'  # real number operation
+    dtype = 'float32'  # real number operation
     # enc = RLNCEncoder2(numRow, numCol, sysPhase=False, dtype=dtype)
     enc = LTEncoder(numRow, numCol, dtype=dtype)
     gMatrix = []  # the generator matrix
@@ -307,7 +314,7 @@ def basicTest():
             decMatrix.append(coeff)
         # By the end of the process, decMatrix will be a k*k full-rank matrix.
         # Each row of decMatrix is a coeff vector.
-        # We can verify it (only under "float64") by calculating its inverse.
+        # We can verify it (only under "float32") by calculating its inverse.
     assert len(decMatrix) == k
     print("number of useless worker is:", counter - k)
 

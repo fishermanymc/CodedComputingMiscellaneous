@@ -5,10 +5,10 @@ import pickle
 import time
 
 
-def singleTest(numRow, numCol):
+def singleTest(numRow, numCol, dtype='float32'):
     k = numRow * numCol  # number of original tasks
-    dtype = 'uint8'  # binary operationration
-    # dtype = 'float64'  # real number operation
+    # dtype = 'uint8'  # binary operationration
+    # dtype = 'float32'  # real number operation
     # print('rlnc')
     enc1 = bc.RLNCEncoder(numRow, numCol, sysPhase=True, dtype=dtype)
     dec1 = bc.Decoder()
@@ -31,9 +31,10 @@ def singleTest(numRow, numCol):
     return counter1 - k, counter2 - k
 
 
-def simulations(testNum):
+def simulations(testNum, dtype='uint8'):
     kTest = range(100, 1001, 100)
     validComb = {}
+    print(dtype)
     for k in kTest:
         validComb[k] = bc.decompose2D(k, k, k)
         print(validComb[k])
@@ -51,7 +52,7 @@ def simulations(testNum):
         for t in range(testNum):
             print(t)
             numRow, numCol = combs[np.random.randint(0, lenCombs)]
-            r1, r2 = singleTest(numRow, numCol)
+            r1, r2 = singleTest(numRow, numCol, dtype)
             redun['rlnc'][k][t] = r1
             redun['lt'][k][t] = r2
         print(np.mean(redun['rlnc'][k]), np.mean(redun['lt'][k]))
@@ -77,7 +78,7 @@ def simulations(testNum):
     #############################################
 
     redun['kList'] = kTest
-    with open('20171204_binary.pickle', 'wb') as handle:
+    with open('20171204_' + dtype +'.pickle', 'wb') as handle:
         pickle.dump(redun, handle)
 
     assert False
@@ -107,8 +108,10 @@ def simulations(testNum):
     plt.grid()
     plt.show()
 
+
 testNum = 10
-# simulation(testNum)
+dtype = 'float32'
+# simulations(testNum, dtype)
 # numRow = range(5, 41, 5)
 # with open('r1.pickle', 'rb') as handle:
 #     redun = pickle.load(handle)
